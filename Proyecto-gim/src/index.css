@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+  --color-univo-blue-dark: #030A8C;
+  --color-univo-blue-mid: #0E4C73;
+  --color-univo-gold: #F2A516;
+}
