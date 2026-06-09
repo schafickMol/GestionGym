@@ -1,19 +1,4 @@
-# Dependencias
 node_modules/
-
-# Variables de entorno
 .env
-.env.*
-
-# Builds
 dist/
-build/
-
-# Logs
-*.log
-
-# Config editor
-.vscode/
-
-# Otros
-.DS_Store
+.docx
