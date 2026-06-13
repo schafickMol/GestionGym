@@ -45,7 +45,7 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
     fetch('http://localhost:3000/api/ejercicios')
       .then(res => res.json())
       .then(todosLosEjercicios => {
-        const imc = parseFloat(resultado); // 👈 usamos el resultado guardado en state
+        const imc = parseFloat(resultado);
         const delGrupo = todosLosEjercicios.filter(
           ej => ej.grupo_muscular.toLowerCase() === grupo.toLowerCase()
         );
@@ -70,37 +70,44 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
       });
   };
 
-  // 👇 Función que faltaba en tu código original
+  // Guardar los ejercicios recomendados en la rutina del usuario (SQL) y
+  // refrescar misRutinas para que el panel "Mi Rutina" del Dashboard lo refleje
   const handleGuardarRecomendacion = async () => {
     if (ejerciciosRecomendados.length === 0) return;
+    if (!usuario || !usuario.id) {
+      alert("No se encontró el usuario. Vuelve a iniciar sesión.");
+      return;
+    }
 
     try {
-      // 1. Guardamos los 4 ejercicios uno por uno de forma segura
+      // 1. Guardamos cada ejercicio recomendado en usuario_rutinas
       for (const ej of ejerciciosRecomendados) {
         const respuesta = await fetch('http://localhost:3000/api/rutinas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             usuario_id: usuario.id,
-            ejercicio_nombre: ej.ejercicio_nombre 
+            // El campo correcto en la tabla ejercicios es "nombre", no "ejercicio_nombre"
+            ejercicio_nombre: ej.nombre
           })
         });
 
         if (!respuesta.ok) {
-          console.error("Error en SQL al intentar guardar:", ej.ejercicio_nombre);
+          console.error("Error en SQL al intentar guardar:", ej.nombre);
         }
       }
 
-      // 2. Cuando termina de guardar todos, volvemos a descargar la lista para el Dashboard
+      // 2. Volvemos a descargar la rutina completa y actualizada desde SQL
       const resLista = await fetch(`http://localhost:3000/api/rutinas/${usuario.id}`);
+      if (!resLista.ok) throw new Error('Error al recargar la rutina');
       const datosActualizados = await resLista.json();
-      
-      // 3. Actualizamos la pantalla
+
+      // 3. Actualizamos el estado global -> esto refresca el panel "Mi Rutina" del Dashboard
       setMisRutinas(datosActualizados);
-      
+
       alert("¡Sistema Experto: Los ejercicios recomendados se agregaron a tu rutina!");
-      
-      // 4. Limpiamos la pantalla
+
+      // 4. Limpiamos la selección
       setEjerciciosRecomendados([]);
       setGrupoSeleccionado('');
 
@@ -109,15 +116,16 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
       alert("Hubo un error de conexión al guardar los ejercicios.");
     }
   };
+
   return (
-    <div className="p-12 w-full max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-univo-blue-dark mb-8">
+    <div className="p-6 md:p-12 w-full max-w-4xl mx-auto">
+      <h1 className="text-2xl md:text-3xl font-bold text-univo-blue-dark mb-6 md:mb-8">
         Calculadora de Salud (IMC)
       </h1>
 
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-bold text-gray-400 mb-2">PESO (KG)</label>
             <input
@@ -147,7 +155,6 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
           CALCULAR AHORA
         </button>
 
-        {/* Resultado del IMC */}
         {resultado && (
           <div className="mt-8 text-center p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-univo-gold transition-all">
             <p className="text-gray-500 uppercase font-bold text-xs">
@@ -159,7 +166,6 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
           </div>
         )}
 
-        {/* SISTEMA EXPERTO DE RECOMENDACIÓN */}
         {resultado && (
           <div className="mt-8 p-6 bg-white border border-gray-100 rounded-3xl shadow-sm w-full">
             <div className="flex items-center gap-3 mb-4">
@@ -182,12 +188,12 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-univo-blue-dark focus:outline-none focus:border-univo-blue-mid transition-colors"
               >
                 <option value="">-- Selecciona un grupo muscular --</option>
-                <option value="Pecho">Pecho</option>
-                <option value="Pierna">Pierna</option>
-                <option value="Espalda">Espalda</option>
-                <option value="Brazos">Brazos</option>
-                <option value="Hombros">Hombros</option>
-                <option value="Full Body">Full Body</option>
+                <option value="pecho">Pecho</option>
+                <option value="pierna">Pierna</option>
+                <option value="espalda">Espalda</option>
+                <option value="brazos">Brazos</option>
+                <option value="hombros">Hombros</option>
+                <option value="full body">Full Body</option>
               </select>
             </div>
 
@@ -203,7 +209,7 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
                     <span className="font-bold underline">
                       {resultado < 18.5 ? 'Bajo Peso (Enfoque Fuerza/Hipertrofia)' : resultado < 25 ? 'Normal (Enfoque Tonificación)' : 'Sobrepeso (Enfoque Bajo Impacto/Cardio)'}
                     </span>
-                    , hemos seleccionado 4 ejercicios clave de la base de datos para ti.
+                    , hemos seleccionado {ejerciciosRecomendados.length} ejercicios clave de la base de datos para ti.
                   </p>
                 </div>
 
@@ -228,7 +234,7 @@ export default function IMC({ setImcGlobal, usuario, setMisRutinas }) {
                   className="w-full mt-2 bg-univo-gold hover:bg-univo-blue-dark hover:text-white text-univo-blue-dark font-black text-xs uppercase tracking-wider py-3 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
                 >
                   <i className="fa-solid fa-calendar-plus"></i>
-                  Agregar estos 4 ejercicios a Mi Rutina
+                  Agregar estos {ejerciciosRecomendados.length} ejercicios a Mi Rutina
                 </button>
               </div>
             )}
