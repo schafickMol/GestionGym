@@ -54,13 +54,15 @@ node server.js
 
 
 se debe cambiar en el archivo server.js a estos parametros segun sea conveniente para hacer la conexion:
+
+```bash
 const cfg = {
     server: 'localhost', port: 1433,
     user: 'sa', password: 'TuPasswordSeguro123!',
     database: 'GimnasioUniversitario',
     options: { encrypt: false, trustServerCertificate: true }
 };
-
+```
 
 ---
 
